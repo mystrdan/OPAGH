@@ -55,7 +55,7 @@ function extractOrderId(data: Record<string, unknown>) {
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
-  if (!WEBHOOK_SECRET) return new Response("Webhook is not configured", { status: 503);
+  if (!WEBHOOK_SECRET) return new Response("Webhook is not configured", { status: 503 });
 
   const rawBody = await req.text();
   const signature = req.headers.get("X-Webhook-Signature") ?? "";
@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
     typeof data.latitude === "number" ? data.latitude :
     typeof data.lat === "number" ? data.lat :
     typeof (data.location as Record<string, unknown> | undefined)?.lat === "number"
-      ? data.location as Record<string, unknown> && (data.location as Record<string, unknown>).lat as number
+      ? (data.location as Record<string, unknown>).lat as number
       : null;
 
   const longitude =
