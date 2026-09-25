@@ -8,7 +8,7 @@ export default function CheckoutScreen() {
     mode?: 'send' | 'pick';
     pickupAddress?: string; pickupDigitalAddress?: string; pickupLandmark?: string;
     destinationAddress?: string; destinationDigitalAddress?: string; destinationLandmark?: string;
-    item?: string; providerId?: string; quoteId?: string;
+    item?: string; providerId?: string; quoteId?: string; quoteAmount?: string; quoteCurrency?: string;
   }>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -54,8 +54,8 @@ export default function CheckoutScreen() {
         pickup_address_id: pickup.id,
         destination_address_id: destination.id,
         item_description: params.item?.trim() || '',
-        amount: null,
-        currency: 'GHS',
+        amount: Number(params.quoteAmount) > 0 ? Number(params.quoteAmount) : null,
+        currency: params.quoteCurrency?.trim() || 'GHS',
         status: 'awaiting_payment',
       }).select('id, status').single();
 
