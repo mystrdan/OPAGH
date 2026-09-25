@@ -14,14 +14,8 @@ async function hmacHex(secret: string, body: string) {
     false,
     ["sign"],
   );
-  const signature = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(body),
-  );
-  return Array.from(new Uint8Array(signature))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
+  return Array.from(new Uint8Array(signature)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function constantTimeEqual(a: string, b: string) {
@@ -61,7 +55,7 @@ function extractOrderId(data: Record<string, unknown>) {
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
-  if (!WEBHOOK_SECRET) return new Response("Webhook is not configured", { status: 503 });
+  if (!WEBHOOK_SECRET) return new Response("Webhook is not configured", { status: 503);
 
   const rawBody = await req.text();
   const signature = req.headers.get("X-Webhook-Signature") ?? "";
@@ -74,9 +68,7 @@ Deno.serve(async (req) => {
   }
 
   const expected = await hmacHex(WEBHOOK_SECRET, rawBody);
-  if (!constantTimeEqual(expected, signature)) {
-    return new Response("Invalid webhook signature", { status: 401 });
-  }
+  if (!constantTimeEqual(expected, signature)) return new Response("Invalid webhook signature", { status: 401 });
 
   let body: Record<string, unknown>;
   try {
@@ -99,22 +91,23 @@ Deno.serve(async (req) => {
   if (!order) return new Response("OK", { status: 200 });
 
   const nextStatus = normalizeStatus(event, data);
-  if (nextStatus && nextStatus !== order.status) {
-    await admin.from("orders").update({ status: nextStatus }).eq("id", order.id);
-  }
+  const statusChanged = Boolean(nextStatus && nextStatus !== order.status);
 
-  await admin.from("order_events").insert({
-    order_id: order.id,
-    user_id: order.user_id,
-    status: nextStatus ?? event,
-    message: "Dawurobo update: " + event,
-  });
+  if (statusChanged) {
+    await admin.from("orders").update({ status: nextStatus }).eq("id", order.id);
+    await admin.from("order_events").insert({
+      order_id: order.id,
+      user_id: order.user_id,
+      status: nextStatus,
+      message: "Dawurobo update: " + event,
+    });
+  }
 
   const latitude =
     typeof data.latitude === "number" ? data.latitude :
     typeof data.lat === "number" ? data.lat :
     typeof (data.location as Record<string, unknown> | undefined)?.lat === "number"
-      ? (data.location as Record<string, unknown>).lat as number
+      ? data.location as Record<string, unknown> && (data.location as Record<string, unknown>).lat as number
       : null;
 
   const longitude =
@@ -145,25 +138,23 @@ Deno.serve(async (req) => {
 
   const notificationStatus = nextStatus ?? event;
   if (notificationStatus) {
-    await fetch(
-      `${SUPABASE_URL}/functions/v1/whatsapp-tracking`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-          apikey: SERVICE_ROLE_KEY,
-        },
-        body: JSON.stringify({
-          orderId: order.id,
-          trackingLocationId,
-          status: notificationStatus,
-          latitude,
-          longitude,
-          recordedAt: new Date().toISOString(),
-        }),
+    await fetch(`${SUPABASE_URL}/functions/v1/whatsapp-tracking`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+        apikey: SERVICE_ROLE_KEY,
       },
-    );
+      body: JSON.stringify({
+        orderId: order.id,
+        trackingLocationId,
+        status: notificationStatus,
+        latitude,
+        longitude,
+        recordedAt: new Date().toISOString(),
+        statusChanged,
+      }),
+    });
   }
 
   return new Response(JSON.stringify({ ok: true }), {
