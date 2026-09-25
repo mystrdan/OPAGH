@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "OPAGH",
-    "slug": "opagh",
+    "name": "JSI",
+    "slug": "jsi",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "scheme": "opagh",
+    "scheme": "jsi",
     "plugins": ["expo-router"],
     "web": { "bundler": "metro" },
-    "android": { "package": "gh.opagh.app" },
-    "ios": { "bundleIdentifier": "gh.opagh.app" }
+    "android": { "package": "gh.jsi.app" },
+    "ios": { "bundleIdentifier": "gh.jsi.app" }
   }
 }
