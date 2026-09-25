@@ -37,6 +37,7 @@ export default function CheckoutScreen() {
         address: params.pickupAddress?.trim() || '',
         digital_address: params.pickupDigitalAddress?.trim() || null,
         landmark: params.pickupLandmark?.trim() || null,
+        latitude: Number(params.pickupLatitude), longitude: Number(params.pickupLongitude),
       }).select('id').single();
       if (pickupError) throw pickupError;
 
@@ -45,6 +46,7 @@ export default function CheckoutScreen() {
         address: params.destinationAddress?.trim() || '',
         digital_address: params.destinationDigitalAddress?.trim() || null,
         landmark: params.destinationLandmark?.trim() || null,
+        latitude: Number(params.destinationLatitude), longitude: Number(params.destinationLongitude),
       }).select('id').single();
       if (destinationError) throw destinationError;
 
