@@ -7,7 +7,9 @@ export default function CheckoutScreen() {
   const params = useLocalSearchParams<{
     mode?: 'send' | 'pick';
     pickupAddress?: string; pickupDigitalAddress?: string; pickupLandmark?: string;
+    pickupLatitude?: string; pickupLongitude?: string;
     destinationAddress?: string; destinationDigitalAddress?: string; destinationLandmark?: string;
+    destinationLatitude?: string; destinationLongitude?: string;
     item?: string; providerId?: string; quoteId?: string; quoteAmount?: string; quoteCurrency?: string;
   }>();
   const [busy, setBusy] = useState(false);
@@ -31,13 +33,22 @@ export default function CheckoutScreen() {
       if (authError || !authData.user) throw new Error('Your session has expired. Please log in again.');
 
       const userId = authData.user.id;
+      const pickupLatitude = Number(params.pickupLatitude);
+      const pickupLongitude = Number(params.pickupLongitude);
+      const destinationLatitude = Number(params.destinationLatitude);
+      const destinationLongitude = Number(params.destinationLongitude);
+
+      if (![pickupLatitude, pickupLongitude, destinationLatitude, destinationLongitude].every(Number.isFinite)) {
+        throw new Error('Verified pickup and destination coordinates are required.');
+      }
 
       const { data: pickup, error: pickupError } = await supabase.from('addresses').insert({
         user_id: userId,
         address: params.pickupAddress?.trim() || '',
         digital_address: params.pickupDigitalAddress?.trim() || null,
         landmark: params.pickupLandmark?.trim() || null,
-        latitude: Number(params.pickupLatitude), longitude: Number(params.pickupLongitude),
+        latitude: pickupLatitude,
+        longitude: pickupLongitude,
       }).select('id').single();
       if (pickupError) throw pickupError;
 
@@ -46,7 +57,8 @@ export default function CheckoutScreen() {
         address: params.destinationAddress?.trim() || '',
         digital_address: params.destinationDigitalAddress?.trim() || null,
         landmark: params.destinationLandmark?.trim() || null,
-        latitude: Number(params.destinationLatitude), longitude: Number(params.destinationLongitude),
+        latitude: destinationLatitude,
+        longitude: destinationLongitude,
       }).select('id').single();
       if (destinationError) throw destinationError;
 
@@ -56,6 +68,7 @@ export default function CheckoutScreen() {
         pickup_address_id: pickup.id,
         destination_address_id: destination.id,
         item_description: params.item?.trim() || '',
+        provider_id: params.providerId?.trim() || null,
         amount: Number(params.quoteAmount) > 0 ? Number(params.quoteAmount) : null,
         currency: params.quoteCurrency?.trim() || 'GHS',
         status: 'awaiting_payment',
