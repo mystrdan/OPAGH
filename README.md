@@ -99,3 +99,29 @@ The native map uses `react-native-maps`. Expo's documentation notes that store b
 Keep it simple.
 
 **Just Send It.**
+
+## WhatsApp tracking notifications
+
+JSI is designed to send delivery tracking updates to the user's WhatsApp number as part of the delivery experience.
+
+The notification path is:
+
+```
+Provider tracking update
+  ↓
+JSI tracking record
+  ↓
+WhatsApp notification job
+  ↓
+Sent
+  ↓
+WhatsApp
+```
+
+The implementation uses the user's authenticated phone number and sends a WhatsApp utility template through Sent. Each tracking event has a deterministic idempotency/dedupe key so the same update is not intentionally sent twice.
+
+The backend function is `supabase/functions/whatsapp-tracking/index.ts`. It requires the server-side `SENT_DM_API_KEY` and an approved WhatsApp template named by `SENT_DM_TRACKING_TEMPLATE` (default: `jsi_delivery_tracking_update`). These values must remain server-side; they are never placed in the Expo app.
+
+JSI does not treat a successful API acceptance as delivery. The Sent message ID is stored in `whatsapp_notifications` so delivery/read webhooks can be connected later.
+
+WhatsApp sending is deliberately server-side. Supabase Edge Functions support server-side integrations and secrets, while client applications should not receive secret keys.
