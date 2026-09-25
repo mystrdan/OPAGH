@@ -6,6 +6,7 @@ async function sha256Hex(value: string) {
   const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
+
 async function hmacHex(secret: string, value: string) {
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(value));
@@ -18,39 +19,71 @@ export default {
 
     const apiKey = Deno.env.get("DAWUROBO_API_KEY");
     const signingSecret = Deno.env.get("DAWUROBO_SIGNING_SECRET");
-    if (!apiKey || !signingSecret) return Response.json({ error: "Dawurobo integration is not configured on JSI yet." }, { status: 503 });
+    if (!apiKey || !signingSecret) {
+      return Response.json({ error: "Dawurobo integration is not configured on JSI yet." }, { status: 503 });
+    }
 
     const input = await req.json().catch(() => ({}));
     const orderId = typeof input.orderId === "string" ? input.orderId : "";
     if (!orderId) return Response.json({ error: "orderId is required." }, { status: 400 });
 
-    const { data: order } = await ctx.supabaseAdmin.from("orders")
+    const { data: order } = await ctx.supabaseAdmin
+      .from("orders")
       .select("id,user_id,status,item_description,provider_id,provider_delivery_id,pickup_address_id,destination_address_id")
-      .eq("id", orderId).single();
+      .eq("id", orderId)
+      .single();
 
     if (!order) return Response.json({ error: "Order not found." }, { status: 404 });
-    if (order.status !== "paid" && order.status !== "creating_delivery") return Response.json({ error: "Order cannot be dispatched from its current status." }, { status: 409 });
-    if (order.provider_delivery_id) return Response.json({ ok: true, alreadyCreated: true, providerDeliveryId: order.provider_delivery_id });
+    if (order.status !== "paid" && order.status !== "creating_delivery") {
+      return Response.json({ error: "Order cannot be dispatched from its current status." }, { status: 409 });
+    }
+    if (order.provider_delivery_id) {
+      return Response.json({ ok: true, alreadyCreated: true, providerDeliveryId: order.provider_delivery_id });
+    }
 
     const [{ data: pickup }, { data: destination }, { data: profile }, { data: provider }] = await Promise.all([
       ctx.supabaseAdmin.from("addresses").select("address,digital_address,landmark,latitude,longitude").eq("id", order.pickup_address_id).eq("user_id", order.user_id).single(),
       ctx.supabaseAdmin.from("addresses").select("address,digital_address,landmark,latitude,longitude").eq("id", order.destination_address_id).eq("user_id", order.user_id).single(),
       ctx.supabaseAdmin.from("profiles").select("phone").eq("id", order.user_id).single(),
+      ctx.supabaseAdmin.from("providers").select("id,slug,name").eq("slug", "dawurobo").eq("active", true).maybeSingle(),
     ]);
 
     if (!pickup || !destination) return Response.json({ error: "Pickup or destination address is missing." }, { status: 409 });
-    if (pickup.latitude == null || pickup.longitude == null || destination.latitude == null || destination.longitude == null) return Response.json({ error: "Verified pickup and destination coordinates are required for provider dispatch." }, { status: 409 });
+    if (pickup.latitude == null || pickup.longitude == null || destination.latitude == null || destination.longitude == null) {
+      return Response.json({ error: "Verified pickup and destination coordinates are required for provider dispatch." }, { status: 409 });
+    }
     if (!profile?.phone) return Response.json({ error: "Customer phone number is missing." }, { status: 409 });
     if (!provider) return Response.json({ error: "Dawurobo provider is not active in JSI yet." }, { status: 409 });
 
-    await ctx.supabaseAdmin.from("orders").update({ status: "creating_delivery" }).eq("id", order.id).eq("status", "paid");
+    const { error: claimingError } = await ctx.supabaseAdmin
+      .from("orders")
+      .update({ status: "creating_delivery" })
+      .eq("id", order.id)
+      .eq("status", "paid");
+
+    if (claimingError) return Response.json({ error: "Could not start provider dispatch." }, { status: 500 });
+
+    await ctx.supabaseAdmin.from("order_events").insert({
+      order_id: order.id,
+      user_id: order.user_id,
+      status: "creating_delivery",
+      message: "JSI is sending the paid order to Dawurobo.",
+    });
 
     const addressText = (a: typeof pickup) => [a.address, a.digital_address, a.landmark].filter(Boolean).join(", ");
     const payload = {
       order_reference: "JSI-" + order.id.replaceAll("-", "").slice(0, 20),
       customer: { name: "JSI Customer", phone: profile.phone },
-      delivery: { address: addressText(destination), coordinates: { lat: Number(destination.latitude), lng: Number(destination.longitude) } },
-      pickup: { address: addressText(pickup), contact_person: "JSI Customer", contact_phone: profile.phone, coordinates: { lat: Number(pickup.latitude), lng: Number(pickup.longitude) } },
+      delivery: {
+        address: addressText(destination),
+        coordinates: { lat: Number(destination.latitude), lng: Number(destination.longitude) },
+      },
+      pickup: {
+        address: addressText(pickup),
+        contact_person: "JSI Customer",
+        contact_phone: profile.phone,
+        coordinates: { lat: Number(pickup.latitude), lng: Number(pickup.longitude) },
+      },
       item: order.item_description,
       payment: { payer: "partner" },
     };
@@ -64,15 +97,28 @@ export default {
 
     const response = await fetch(BASE_URL + path, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-API-Key": apiKey, "X-Signature": signature, "X-Timestamp": timestamp, "X-Nonce": nonce },
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": apiKey,
+        "X-Signature": signature,
+        "X-Timestamp": timestamp,
+        "X-Nonce": nonce,
+      },
       body,
     });
+
     const raw = await response.text();
     let result: unknown = raw;
     try { result = JSON.parse(raw); } catch {}
 
     if (!response.ok) {
       await ctx.supabaseAdmin.from("orders").update({ status: "failed" }).eq("id", order.id).eq("status", "creating_delivery");
+      await ctx.supabaseAdmin.from("order_events").insert({
+        order_id: order.id,
+        user_id: order.user_id,
+        status: "failed",
+        message: "Dawurobo delivery creation failed.",
+      });
       return Response.json({ error: "Dawurobo delivery creation failed.", providerStatus: response.status, providerResponse: result }, { status: 502 });
     }
 
@@ -83,10 +129,28 @@ export default {
 
     if (!providerDeliveryId) {
       await ctx.supabaseAdmin.from("orders").update({ status: "failed" }).eq("id", order.id).eq("status", "creating_delivery");
+      await ctx.supabaseAdmin.from("order_events").insert({
+        order_id: order.id,
+        user_id: order.user_id,
+        status: "failed",
+        message: "Dawurobo accepted the request without returning a provider order ID.",
+      });
       return Response.json({ error: "Dawurobo returned no provider order ID." }, { status: 502 });
     }
 
-    await ctx.supabaseAdmin.from("orders").update({ provider_delivery_id: providerDeliveryId, status: "in_transit" }).eq("id", order.id);
-    return Response.json({ ok: true, providerDeliveryId });
+    await ctx.supabaseAdmin.from("orders").update({
+      provider_id: provider.id,
+      provider_delivery_id: providerDeliveryId,
+      status: "paid",
+    }).eq("id", order.id);
+
+    await ctx.supabaseAdmin.from("order_events").insert({
+      order_id: order.id,
+      user_id: order.user_id,
+      status: "paid",
+      message: "Dawurobo created the delivery. Waiting for provider acceptance.",
+    });
+
+    return Response.json({ ok: true, providerDeliveryId, status: "paid" });
   }),
 };
