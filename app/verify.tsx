@@ -1,16 +1,52 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { supabase } from '../lib/supabase';
 
 export default function VerifyScreen() {
   const params = useLocalSearchParams<{ phone?: string }>();
   const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
   const phone = typeof params.phone === 'string' ? params.phone : '';
-  const canVerify = /^\d{6}$/.test(code);
+  const canVerify = /^\d{6}$/.test(code) && !!phone;
 
-  function verify() {
-    if (!canVerify) return;
-    // Supabase OTP verification will replace this transition once the backend is connected.
+  async function verify() {
+    if (!canVerify || busy) return;
+    setError('');
+
+    if (!supabase) {
+      setError('JSI is not connected to its authentication service yet.');
+      return;
+    }
+
+    setBusy(true);
+    const { data, error: verifyError } = await supabase.auth.verifyOtp({
+      phone,
+      token: code,
+      type: 'sms',
+    });
+
+    if (verifyError) {
+      setBusy(false);
+      setError(verifyError.message);
+      return;
+    }
+
+    if (data.user) {
+      const { error: profileError } = await supabase.from('profiles').upsert(
+        { id: data.user.id, phone: data.user.phone ?? phone },
+        { onConflict: 'id' }
+      );
+
+      if (profileError) {
+        setBusy(false);
+        setError(profileError.message);
+        return;
+      }
+    }
+
+    setBusy(false);
     router.replace('/');
   }
 
@@ -20,14 +56,28 @@ export default function VerifyScreen() {
         <Text style={styles.eyebrow}>JSI · Just Send It</Text>
         <Text style={styles.title}>Enter your code</Text>
         <Text style={styles.subtitle}>We’ll verify the code sent to {phone || 'your phone number'}.</Text>
+
         <View style={styles.field}>
           <Text style={styles.label}>6-digit code</Text>
-          <TextInput value={code} onChangeText={(value) => setCode(value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" keyboardType="number-pad" maxLength={6} style={styles.input} />
+          <TextInput
+            value={code}
+            onChangeText={(value) => setCode(value.replace(/\D/g, '').slice(0, 6))}
+            placeholder="000000"
+            keyboardType="number-pad"
+            maxLength={6}
+            style={styles.input}
+            editable={!busy}
+            autoFocus
+          />
         </View>
-        <Pressable disabled={!canVerify} onPress={verify} style={[styles.button, !canVerify && styles.disabled]}>
-          <Text style={styles.buttonText}>Verify</Text>
+
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+
+        <Pressable disabled={!canVerify || busy} onPress={verify} style={[styles.button, (!canVerify || busy) && styles.disabled]}>
+          <Text style={styles.buttonText}>{busy ? 'Verifying…' : 'Verify'}</Text>
         </Pressable>
-        <Text style={styles.note}>Live OTP verification will be enabled when the Supabase project is ready.</Text>
+
+        <Text style={styles.note}>The code is verified by Supabase Auth. JSI does not accept or simulate verification locally.</Text>
       </View>
     </View>
   );
@@ -45,5 +95,6 @@ const styles = StyleSheet.create({
   button: { backgroundColor: '#111', paddingVertical: 15, borderRadius: 10, alignItems: 'center', marginTop: 4 },
   disabled: { opacity: 0.4 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  note: { color: '#888', fontSize: 13 }
+  note: { color: '#888', fontSize: 13, lineHeight: 19 },
+  error: { color: '#b42318', fontSize: 14, lineHeight: 20 }
 });
