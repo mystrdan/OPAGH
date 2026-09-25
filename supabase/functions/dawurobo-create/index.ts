@@ -13,7 +13,7 @@ async function hmacHex(secret: string, value: string) {
 }
 
 export default {
-  fetch: withSupabase({ auth: "secret" }, async (req, ctx) => {
+  fetch: withSupabase({ auth: "user" }, async (req, ctx) => {
     if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
     const apiKey = Deno.env.get("DAWUROBO_API_KEY");
