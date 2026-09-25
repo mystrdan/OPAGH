@@ -6,9 +6,23 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "scheme": "jsi",
-    "plugins": ["expo-router"],
-    "web": { "bundler": "metro" },
-    "android": { "package": "gh.jsi.app" },
-    "ios": { "bundleIdentifier": "gh.jsi.app" }
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow JSI to use your location to set a pickup or delivery location."
+        }
+      ]
+    ],
+    "web": {
+      "bundler": "metro"
+    },
+    "android": {
+      "package": "gh.jsi.app"
+    },
+    "ios": {
+      "bundleIdentifier": "gh.jsi.app"
+    }
   }
 }
