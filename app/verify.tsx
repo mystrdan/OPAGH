@@ -4,11 +4,12 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { supabase } from '../lib/supabase';
 
 export default function VerifyScreen() {
-  const params = useLocalSearchParams<{ phone?: string }>();
+  const params = useLocalSearchParams<{ phone?: string; channel?: string }>();
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const phone = typeof params.phone === 'string' ? params.phone : '';
+  const channel = params.channel === 'whatsapp' ? 'WhatsApp' : 'SMS';
   const canVerify = /^\d{6}$/.test(code) && !!phone;
 
   async function verify() {
@@ -55,7 +56,7 @@ export default function VerifyScreen() {
       <View style={styles.content}>
         <Text style={styles.eyebrow}>JSI · Just Send It</Text>
         <Text style={styles.title}>Enter your code</Text>
-        <Text style={styles.subtitle}>We’ll verify the code sent to {phone || 'your phone number'}.</Text>
+        <Text style={styles.subtitle}>We sent a 6-digit verification code to {phone || 'your phone number'} via {channel}.</Text>
 
         <View style={styles.field}>
           <Text style={styles.label}>6-digit code</Text>
