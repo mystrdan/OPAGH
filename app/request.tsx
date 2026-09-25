@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { DeliveryMode } from '../lib/logistics';
 
 export default function RequestScreen() {
@@ -142,6 +142,10 @@ function AddressSection({
   }
 
   async function findAddressLocation() {
+    if (Platform.OS === 'web') {
+      setLocationMessage('Address geocoding is not available in the web build yet. Enter coordinates or use a device location.');
+      return;
+    }
     const query = [address.trim(), digitalAddress.trim(), landmark.trim()].filter(Boolean).join(', ');
     if (!query) {
       setLocationMessage('Enter an address first.');
