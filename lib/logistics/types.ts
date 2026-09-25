@@ -1,6 +1,17 @@
+export type DeliveryMode = 'send' | 'pick';
+
+export type Address = {
+  address: string;
+  digitalAddress?: string;
+  landmark?: string;
+  latitude?: number;
+  longitude?: number;
+};
+
 export type DeliveryRequest = {
-  pickup: string;
-  destination: string;
+  mode: DeliveryMode;
+  pickup: Address;
+  destination: Address;
   item: string;
 };
 
