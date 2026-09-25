@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "OPAGH",
+    "slug": "opagh",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "scheme": "opagh",
+    "plugins": ["expo-router"],
+    "web": { "bundler": "metro" },
+    "android": { "package": "gh.opagh.app" },
+    "ios": { "bundleIdentifier": "gh.opagh.app" }
+  }
+}
