@@ -8,9 +8,13 @@ export default function RequestScreen() {
   const [pickupAddress, setPickupAddress] = useState('');
   const [pickupDigitalAddress, setPickupDigitalAddress] = useState('');
   const [pickupLandmark, setPickupLandmark] = useState('');
+  const [pickupLatitude, setPickupLatitude] = useState('');
+  const [pickupLongitude, setPickupLongitude] = useState('');
   const [destinationAddress, setDestinationAddress] = useState('');
   const [destinationDigitalAddress, setDestinationDigitalAddress] = useState('');
   const [destinationLandmark, setDestinationLandmark] = useState('');
+  const [destinationLatitude, setDestinationLatitude] = useState('');
+  const [destinationLongitude, setDestinationLongitude] = useState('');
   const [item, setItem] = useState('');
 
   const canContinue = Boolean(pickupAddress.trim() && destinationAddress.trim() && item.trim());
@@ -18,8 +22,8 @@ export default function RequestScreen() {
   function continueToOptions() {
     if (!canContinue) return;
     router.push({ pathname: '/options', params: {
-      mode, pickupAddress, pickupDigitalAddress, pickupLandmark,
-      destinationAddress, destinationDigitalAddress, destinationLandmark, item,
+      mode, pickupAddress, pickupDigitalAddress, pickupLandmark, pickupLatitude, pickupLongitude,
+      destinationAddress, destinationDigitalAddress, destinationLandmark, destinationLatitude, destinationLongitude, item,
     }});
   }
 
@@ -38,11 +42,15 @@ export default function RequestScreen() {
         <AddressSection title="Pickup address" address={pickupAddress} setAddress={setPickupAddress}
           digitalAddress={pickupDigitalAddress} setDigitalAddress={setPickupDigitalAddress}
           landmark={pickupLandmark} setLandmark={setPickupLandmark}
+          latitude={pickupLatitude} setLatitude={setPickupLatitude}
+          longitude={pickupLongitude} setLongitude={setPickupLongitude}
           hint={mode === 'pick' ? 'Where should the package be picked up?' : 'Where is the package starting from?'} />
 
         <AddressSection title="Destination address" address={destinationAddress} setAddress={setDestinationAddress}
           digitalAddress={destinationDigitalAddress} setDigitalAddress={setDestinationDigitalAddress}
           landmark={destinationLandmark} setLandmark={setDestinationLandmark}
+          latitude={destinationLatitude} setLatitude={setDestinationLatitude}
+          longitude={destinationLongitude} setLongitude={setDestinationLongitude}
           hint={mode === 'pick' ? 'Where should the package be brought to you?' : 'Where should the package be delivered?'} />
 
         <View style={styles.field}>
@@ -64,10 +72,12 @@ function ModeButton({ label, active, onPress }: { label: string; active: boolean
   </Pressable>;
 }
 
-function AddressSection({ title, address, setAddress, digitalAddress, setDigitalAddress, landmark, setLandmark, hint }: {
+function AddressSection({ title, address, setAddress, digitalAddress, setDigitalAddress, landmark, setLandmark, latitude, setLatitude, longitude, setLongitude, hint }: {
   title: string; address: string; setAddress: (v: string) => void;
   digitalAddress: string; setDigitalAddress: (v: string) => void;
-  landmark: string; setLandmark: (v: string) => void; hint: string;
+  landmark: string; setLandmark: (v: string) => void;
+  latitude: string; setLatitude: (v: string) => void;
+  longitude: string; setLongitude: (v: string) => void; hint: string;
 }) {
   return <View style={styles.section}>
     <Text style={styles.sectionTitle}>{title}</Text>
@@ -75,6 +85,11 @@ function AddressSection({ title, address, setAddress, digitalAddress, setDigital
     <TextInput value={address} onChangeText={setAddress} placeholder="Street, area or full address" style={styles.input} />
     <TextInput value={digitalAddress} onChangeText={setDigitalAddress} placeholder="GhanaPostGPS address (optional)" style={styles.input} autoCapitalize="characters" />
     <TextInput value={landmark} onChangeText={setLandmark} placeholder="Landmark or extra directions (optional)" style={styles.input} />
+    <View style={styles.coordinateRow}>
+      <TextInput value={latitude} onChangeText={setLatitude} placeholder="Latitude (optional)" keyboardType="decimal-pad" style={[styles.input, styles.coordinate]} />
+      <TextInput value={longitude} onChangeText={setLongitude} placeholder="Longitude (optional)" keyboardType="decimal-pad" style={[styles.input, styles.coordinate]} />
+    </View>
+    <Text style={styles.coordinateHint}>Coordinates are optional for now, but connected providers such as Dawurobo use them to calculate delivery pricing.</Text>
   </View>;
 }
 
@@ -95,6 +110,9 @@ const styles = StyleSheet.create({
   field: { gap: 8 },
   label: { fontSize: 14, fontWeight: '700' },
   input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 13, fontSize: 16, backgroundColor: '#fff' },
+  coordinateRow: { flexDirection: 'row', gap: 8 },
+  coordinate: { flex: 1 },
+  coordinateHint: { color: '#888', fontSize: 12, lineHeight: 18 },
   button: { backgroundColor: '#111', paddingVertical: 15, borderRadius: 10, alignItems: 'center', marginTop: 4 },
   disabled: { opacity: 0.4 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
