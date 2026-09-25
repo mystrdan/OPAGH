@@ -23,7 +23,7 @@ export default function OrderScreen() {
   }, [orderId]);
 
   async function startPayment() {
-    if (!supabase || !orderId || busy) return;
+    if (!supabase || !orderId) return;
     setBusy(true);
     setMessage('');
     try {
