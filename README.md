@@ -32,3 +32,11 @@ The first provider will sit behind a provider adapter. Additional logistics APIs
 ## Principle
 
 Keep it simple. OPAGH is a logistics aggregation layer, not a fleet management company.
+
+## Current implementation
+
+- Phone-number login and 6-digit OTP screens are scaffolded for Supabase Auth.
+- Delivery requests are passed through the request → options flow.
+- Logistics providers use a shared adapter interface so additional provider APIs can be added without changing the customer flow.
+- A development provider adapter supplies non-production quote data until a real logistics API is connected.
+- No placeholder quote is presented as a real provider quote.
