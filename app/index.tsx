@@ -5,13 +5,13 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.eyebrow}>OPAGH</Text>
-        <Text style={styles.title}>Move it.</Text>
+        <Text style={styles.eyebrow}>JSI</Text>
+        <Text style={styles.title}>Just Send It.</Text>
         <Text style={styles.subtitle}>
-          One place to order logistics from connected delivery providers.
+          Send a package or have one picked up through connected delivery providers.
         </Text>
         <Link href="/login" style={styles.secondary}>Log in</Link>
-        <Link href="/request" style={styles.button}>Request a delivery</Link>
+        <Link href="/request" style={styles.button}>Start a request</Link>
         <Text style={styles.note}>Web · Android · iOS</Text>
       </View>
     </View>
