@@ -15,7 +15,7 @@ export default function OptionsScreen() {
     const a = n(p.pickupLatitude), b = n(p.pickupLongitude), c = n(p.destinationLatitude), d = n(p.destinationLongitude);
     if (![a,b,c,d].every(Number.isFinite)) { setError('Pickup and destination coordinates are required for provider pricing. JSI will not invent coordinates.'); setLoading(false); return () => { live = false; }; }
     if (!supabase) { setError('JSI is not connected to its backend.'); setLoading(false); return () => { live = false; }; }
-    supabase.functions.invoke('dawurobo', { body: { action: 'estimate', pickup: { lat: a, lng: b }, delivery: { lat: c, lng: d } } }).then(({data,error:e}) => {
+    supabase.functions.invoke('dawurobo', { body: { operation: 'estimate', payload: { pickup: { lat: a, lng: b }, delivery: { lat: c, lng: d } } } }).then(({data,error:e}) => {
       if (!live) return;
       if (e || data?.error) { setError(e?.message || data?.error || 'Could not retrieve provider pricing.'); setLoading(false); return; }
       const x = data?.data ?? data;
