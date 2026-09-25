@@ -4,7 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
-const protectedRoutes = new Set(['/request', '/options', '/checkout', '/tracking']);
+const protectedRoutes = new Set(['/request', '/options', '/checkout', '/order', '/tracking']);
 const authRoutes = new Set(['/login', '/verify']);
 
 export default function RootLayout() {
