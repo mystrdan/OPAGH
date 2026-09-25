@@ -43,6 +43,27 @@ export default function OrderScreen() {
     }
   }
 
+  async function dispatchDelivery() {
+    if (!supabase || !orderId || busy) return;
+    setBusy(true);
+    setMessage('');
+    try {
+      const { data, error } = await supabase.functions.invoke('dawurobo-create', {
+        body: { orderId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.providerDeliveryId) {
+        setStatus('in_transit');
+        setMessage('Payment confirmed. Your delivery has been sent to the logistics provider.');
+      }
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : 'Could not dispatch the delivery.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function checkPayment() {
     if (!supabase || !orderId || busy) return;
     setBusy(true);
@@ -56,9 +77,13 @@ export default function OrderScreen() {
       if (data?.payment?.status) setStatus(data.payment.status === 'paid' ? 'paid' : data.payment.status);
       if (data?.orderStatus) setStatus(data.orderStatus);
       if (data?.payment?.checkout_url) setCheckoutUrl(data.payment.checkout_url);
-      setMessage(data?.payment?.status === 'paid'
-        ? 'Payment confirmed. JSI can now proceed to provider dispatch.'
-        : 'Payment is not confirmed yet.');
+      if (data?.payment?.status === 'paid') {
+        setStatus('paid');
+        setMessage('Payment confirmed. Dispatching your delivery…');
+        await dispatchDelivery();
+      } else {
+        setMessage('Payment is not confirmed yet.');
+      }
     } catch (e) {
       setMessage(e instanceof Error ? e.message : 'Could not check payment status.');
     } finally {
@@ -97,6 +122,12 @@ export default function OrderScreen() {
         {paid ? (
           <Pressable disabled={busy} style={[styles.button, busy && styles.disabled]} onPress={checkPayment}>
             <Text style={styles.buttonText}>{busy ? 'Checking…' : 'Check payment status'}</Text>
+          </Pressable>
+        ) : null}
+
+        {status === 'paid' ? (
+          <Pressable disabled={busy} style={[styles.button, busy && styles.disabled]} onPress={dispatchDelivery}>
+            <Text style={styles.buttonText}>{busy ? 'Dispatching…' : 'Send to logistics provider'}</Text>
           </Pressable>
         ) : null}
 
