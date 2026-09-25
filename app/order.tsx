@@ -44,7 +44,7 @@ export default function OrderScreen() {
   }
 
   async function dispatchDelivery() {
-    if (!supabase || !orderId || busy) return;
+    if (!supabase || !orderId) return;
     setBusy(true);
     setMessage('');
     try {
@@ -54,8 +54,8 @@ export default function OrderScreen() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       if (data?.providerDeliveryId) {
-        setStatus('in_transit');
-        setMessage('Payment confirmed. Your delivery has been sent to the logistics provider.');
+        setStatus(data?.status ?? 'paid');
+        setMessage('Payment confirmed. Your delivery has been sent to the logistics provider and is waiting for provider acceptance.');
       }
     } catch (e) {
       setMessage(e instanceof Error ? e.message : 'Could not dispatch the delivery.');
