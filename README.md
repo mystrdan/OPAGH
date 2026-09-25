@@ -88,7 +88,7 @@ A real rider marker will appear only after the connected provider supplies live 
 - A development provider adapter supplies non-production quote data until a real logistics API is connected.
 - Checkout shows a structured review before payment.
 - Tracking screen and realtime tracking data model are implemented.
-- Payment, live OTP verification, real provider creation, and real provider GPS feeds are not yet connected.
+- Hubtel payment function and WhatsApp tracking notification function are deployed server-side; live provider creation/GPS feeds and production messaging credentials still require provider credentials and activation.
 
 ## Map deployment note
 
@@ -118,7 +118,7 @@ Sent
 WhatsApp
 ```
 
-The implementation uses the user's authenticated phone number and sends a WhatsApp utility template through Sent. Each tracking event has a deterministic idempotency/dedupe key so the same update is not intentionally sent twice.
+The implementation uses the user's authenticated phone number and sends a WhatsApp utility template through Sent. Tracking notifications are designed as transactional updates, not marketing messages. Each tracking event has a deterministic idempotency/dedupe key so the same update is not intentionally sent twice.
 
 The backend function is `supabase/functions/whatsapp-tracking/index.ts`. It requires the server-side `SENT_DM_API_KEY` and an approved WhatsApp template named by `SENT_DM_TRACKING_TEMPLATE` (default: `jsi_delivery_tracking_update`). These values must remain server-side; they are never placed in the Expo app.
 
