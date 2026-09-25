@@ -3,6 +3,7 @@ import { withSupabase } from "npm:@supabase/server@^1";
 const SENT_BASE_URL = Deno.env.get("SENT_DM_BASE_URL") ?? "https://api.sent.dm";
 const SENT_API_KEY = Deno.env.get("SENT_DM_API_KEY");
 const SENT_TEMPLATE = Deno.env.get("SENT_DM_TRACKING_TEMPLATE") ?? "jsi_delivery_tracking_update";
+const LOCATION_UPDATE_MINUTES = 5;
 
 type Input = {
   orderId?: string;
@@ -11,6 +12,7 @@ type Input = {
   latitude?: number | null;
   longitude?: number | null;
   recordedAt?: string | null;
+  statusChanged?: boolean;
 };
 
 function json(body: unknown, status = 200) {
@@ -78,6 +80,29 @@ export default {
 
     if (existing) return json({ skipped: true, notification: existing });
 
+    // Status transitions are always sent. High-frequency GPS-only updates are
+    // throttled so a provider cannot turn a busy tracking feed into WhatsApp spam.
+    if (trackingLocationId && !input.statusChanged) {
+      const cutoff = new Date(Date.now() - LOCATION_UPDATE_MINUTES * 60 * 1000).toISOString();
+      const { data: recent } = await ctx.supabaseAdmin
+        .from("whatsapp_notifications")
+        .select("id,created_at")
+        .eq("order_id", input.orderId)
+        .eq("notification_type", "tracking_update")
+        .not("tracking_location_id", "is", null)
+        .gte("created_at", cutoff)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (recent) {
+        return json({
+          skipped: true,
+          reason: `Location updates are throttled to one WhatsApp message every ${LOCATION_UPDATE_MINUTES} minutes.`,
+        });
+      }
+    }
+
     const latitude = typeof input.latitude === "number" ? input.latitude : null;
     const longitude = typeof input.longitude === "number" ? input.longitude : null;
     const location = locationText(latitude, longitude);
@@ -89,7 +114,7 @@ export default {
         order_id: input.orderId,
         user_id: order.user_id,
         tracking_location_id: trackingLocationId,
-        notification_type: "tracking_update",
+        notification_type: trackingLocationId && !input.statusChanged ? "tracking_update" : "status_update",
         dedupe_key: dedupeKey,
         status: "pending",
         payload: {
@@ -97,6 +122,7 @@ export default {
           latitude,
           longitude,
           recordedAt: input.recordedAt ?? new Date().toISOString(),
+          statusChanged: Boolean(input.statusChanged),
         },
       })
       .select("id,status")
