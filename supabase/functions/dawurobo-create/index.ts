@@ -51,7 +51,7 @@ export default {
       delivery: { address: addressText(destination), coordinates: { lat: Number(destination.latitude), lng: Number(destination.longitude) } },
       pickup: { address: addressText(pickup), contact_person: "JSI Customer", contact_phone: profile.phone, coordinates: { lat: Number(pickup.latitude), lng: Number(pickup.longitude) } },
       item: order.item_description,
-      payment: { payer: "recipient" },
+      payment: { payer: "partner" },
     };
 
     const path = "/api/v1/delivery/orders.create";
