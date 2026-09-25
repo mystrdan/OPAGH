@@ -28,11 +28,13 @@ export default function CheckoutScreen() {
 
     setBusy(true);
 
+    let pickupId: string | null = null;
+    let destinationId: string | null = null;
+
     try {
       const { data: authData, error: authError } = await supabase.auth.getUser();
       if (authError || !authData.user) throw new Error('Your session has expired. Please log in again.');
 
-      const userId = authData.user.id;
       const pickupLatitude = Number(params.pickupLatitude);
       const pickupLongitude = Number(params.pickupLongitude);
       const destinationLatitude = Number(params.destinationLatitude);
@@ -43,7 +45,7 @@ export default function CheckoutScreen() {
       }
 
       const { data: pickup, error: pickupError } = await supabase.from('addresses').insert({
-        user_id: userId,
+        user_id: authData.user.id,
         address: params.pickupAddress?.trim() || '',
         digital_address: params.pickupDigitalAddress?.trim() || null,
         landmark: params.pickupLandmark?.trim() || null,
@@ -51,9 +53,10 @@ export default function CheckoutScreen() {
         longitude: pickupLongitude,
       }).select('id').single();
       if (pickupError) throw pickupError;
+      pickupId = pickup.id;
 
       const { data: destination, error: destinationError } = await supabase.from('addresses').insert({
-        user_id: userId,
+        user_id: authData.user.id,
         address: params.destinationAddress?.trim() || '',
         digital_address: params.destinationDigitalAddress?.trim() || null,
         landmark: params.destinationLandmark?.trim() || null,
@@ -61,23 +64,31 @@ export default function CheckoutScreen() {
         longitude: destinationLongitude,
       }).select('id').single();
       if (destinationError) throw destinationError;
+      destinationId = destination.id;
 
-      const { data: order, error: orderError } = await supabase.from('orders').insert({
-        user_id: userId,
-        mode,
-        pickup_address_id: pickup.id,
-        destination_address_id: destination.id,
-        item_description: params.item?.trim() || '',
-        provider_id: params.providerId?.trim() || null,
-        amount: Number(params.quoteAmount) > 0 ? Number(params.quoteAmount) : null,
-        currency: params.quoteCurrency?.trim() || 'GHS',
-        status: 'awaiting_payment',
-      }).select('id, status').single();
+      const { data, error: createError } = await supabase.functions.invoke('create-order', {
+        body: {
+          mode,
+          pickupAddressId: pickup.id,
+          destinationAddressId: destination.id,
+          item: params.item?.trim() || '',
+        },
+      });
 
-      if (orderError) throw orderError;
+      if (createError) throw createError;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.order?.id) throw new Error('JSI did not receive a valid order confirmation.');
 
-      router.replace({ pathname: '/order', params: { orderId: order.id, status: order.status } });
+      router.replace({
+        pathname: '/order',
+        params: {
+          orderId: data.order.id,
+          status: data.order.status,
+        },
+      });
     } catch (e) {
+      if (pickupId) await supabase.from('addresses').delete().eq('id', pickupId);
+      if (destinationId) await supabase.from('addresses').delete().eq('id', destinationId);
       setError(e instanceof Error ? e.message : 'Could not create the delivery request.');
     } finally {
       setBusy(false);
