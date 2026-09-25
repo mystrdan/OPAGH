@@ -64,6 +64,7 @@ export default function RootLayout() {
       <Stack.Screen name="request" options={{ title: 'Send or Pick' }} />
       <Stack.Screen name="options" options={{ title: 'Delivery options' }} />
       <Stack.Screen name="checkout" options={{ title: 'Review request' }} />
+      <Stack.Screen name="order" options={{ title: 'Request created' }} />
       <Stack.Screen name="tracking" options={{ title: 'Track delivery' }} />
     </Stack>
   );
