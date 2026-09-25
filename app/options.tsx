@@ -1,25 +1,45 @@
-import { router } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-
-const options = [
-  { id: 'standard', name: 'Standard delivery', provider: 'Connected provider', price: 'Quote required' },
-  { id: 'economy', name: 'Economy delivery', provider: 'Connected provider', price: 'Quote required' }
-];
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { mockProvider, type DeliveryQuote } from '../lib/logistics';
 
 export default function OptionsScreen() {
+  const params = useLocalSearchParams<{ pickup?: string; destination?: string; item?: string }>();
+  const [quotes, setQuotes] = useState<DeliveryQuote[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    mockProvider.getQuote({
+      pickup: params.pickup ?? '',
+      destination: params.destination ?? '',
+      item: params.item ?? '',
+    }).then((result) => {
+      if (active) {
+        setQuotes(result);
+        setLoading(false);
+      }
+    }).catch(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, [params.pickup, params.destination, params.item]);
+
   return (
     <View style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.title}>Delivery options</Text>
-        <Text style={styles.subtitle}>Provider results will appear here once the first logistics adapter is connected.</Text>
-        {options.map((option) => (
-          <View key={option.id} style={styles.card}>
+        <Text style={styles.subtitle}>Available options returned by connected logistics providers.</Text>
+        {loading ? <ActivityIndicator /> : quotes.length === 0 ? (
+          <Text style={styles.empty}>No delivery options are available.</Text>
+        ) : quotes.map((quote) => (
+          <View key={quote.id} style={styles.card}>
             <View style={styles.info}>
-              <Text style={styles.name}>{option.name}</Text>
-              <Text style={styles.provider}>{option.provider}</Text>
-              <Text style={styles.price}>{option.price}</Text>
+              <Text style={styles.name}>{quote.serviceName}</Text>
+              <Text style={styles.provider}>{quote.providerName}</Text>
+              <Text style={styles.price}>{quote.amount === null ? 'Quote required' : `${quote.currency} ${quote.amount.toFixed(2)}`}</Text>
             </View>
-            <Pressable style={styles.select} onPress={() => router.push('/checkout')}>
+            <Pressable style={styles.select} onPress={() => router.push({ pathname: '/checkout', params: { quoteId: quote.id, providerId: quote.providerId, pickup: params.pickup, destination: params.destination, item: params.item } })}>
               <Text style={styles.selectText}>Select</Text>
             </Pressable>
           </View>
@@ -40,5 +60,6 @@ const styles = StyleSheet.create({
   provider: { color: '#666' },
   price: { fontWeight: '700', marginTop: 4 },
   select: { backgroundColor: '#111', paddingHorizontal: 18, paddingVertical: 11, borderRadius: 9 },
-  selectText: { color: '#fff', fontWeight: '700' }
+  selectText: { color: '#fff', fontWeight: '700' },
+  empty: { color: '#666' },
 });
