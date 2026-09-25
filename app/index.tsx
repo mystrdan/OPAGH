@@ -10,6 +10,7 @@ export default function HomeScreen() {
         <Text style={styles.subtitle}>
           One place to order logistics from connected delivery providers.
         </Text>
+        <Link href="/login" style={styles.secondary}>Log in</Link>
         <Link href="/request" style={styles.button}>Request a delivery</Link>
         <Text style={styles.note}>Web · Android · iOS</Text>
       </View>
@@ -23,6 +24,7 @@ const styles = StyleSheet.create({
   eyebrow: { fontSize: 14, fontWeight: '700', letterSpacing: 2 },
   title: { fontSize: 48, fontWeight: '800', letterSpacing: -2 },
   subtitle: { fontSize: 18, lineHeight: 27, color: '#555', maxWidth: 480 },
+  secondary: { alignSelf: 'flex-start', color: '#111', paddingHorizontal: 20, paddingVertical: 14, borderWidth: 1, borderColor: '#ddd', borderRadius: 10, fontSize: 16, fontWeight: '700', overflow: 'hidden' },
   button: { alignSelf: 'flex-start', backgroundColor: '#111', color: '#fff', paddingHorizontal: 20, paddingVertical: 14, borderRadius: 10, fontSize: 16, fontWeight: '700', overflow: 'hidden' },
   note: { fontSize: 13, color: '#888' }
 });
