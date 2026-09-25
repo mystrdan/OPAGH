@@ -100,11 +100,15 @@ Deno.serve(async (req) => {
 
   const nextStatus = normalizeStatus(event, data);
   if (nextStatus && nextStatus !== order.status) {
-    await admin
-      .from("orders")
-      .update({ status: nextStatus })
-      .eq("id", order.id);
+    await admin.from("orders").update({ status: nextStatus }).eq("id", order.id);
   }
+
+  await admin.from("order_events").insert({
+    order_id: order.id,
+    user_id: order.user_id,
+    status: nextStatus ?? event,
+    message: "Dawurobo update: " + event,
+  });
 
   const latitude =
     typeof data.latitude === "number" ? data.latitude :
