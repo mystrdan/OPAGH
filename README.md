@@ -85,6 +85,7 @@ A real rider marker will appear only after the connected provider supplies live 
 - Pickup and destination addresses are structured separately.
 - GhanaPostGPS digital address fields are supported as optional address data.
 - Landmark / additional directions are supported for both locations.
+- Address location can be obtained from the device or address geocoder instead of requiring users to know latitude/longitude.
 - Provider quote selection is wired to the Dawurobo estimate endpoint.
 - Checkout stores the selected provider and the real provider quote.
 - Hubtel payment initialization and status verification are implemented server-side.
