@@ -1,3 +1,4 @@
+import MapView, { Marker } from 'react-native-maps';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import type { TrackingPoint } from '../lib/logistics';
 
@@ -15,10 +16,6 @@ export default function TrackingMap({ point, label = 'Package / rider' }: Props)
     );
   }
 
-  // react-native-maps is loaded only on native platforms so the Web target stays dependency-safe.
-  const MapView = require('react-native-maps').default;
-  const Marker = require('react-native-maps').Marker;
-
   if (!point) {
     return (
       <View style={styles.fallback}>
@@ -29,21 +26,12 @@ export default function TrackingMap({ point, label = 'Package / rider' }: Props)
   }
 
   return (
-    <MapView
-      style={styles.map}
-      initialRegion={{
-        latitude: point.latitude,
-        longitude: point.longitude,
-        latitudeDelta: 0.02,
-        longitudeDelta: 0.02,
-      }}
-      region={{
-        latitude: point.latitude,
-        longitude: point.longitude,
-        latitudeDelta: 0.02,
-        longitudeDelta: 0.02,
-      }}
-    >
+    <MapView style={styles.map} region={{
+      latitude: point.latitude,
+      longitude: point.longitude,
+      latitudeDelta: 0.02,
+      longitudeDelta: 0.02,
+    }}>
       <Marker coordinate={{ latitude: point.latitude, longitude: point.longitude }} title={label} />
     </MapView>
   );
