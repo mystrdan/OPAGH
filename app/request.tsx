@@ -16,7 +16,7 @@ export default function RequestScreen() {
         <Field label="Pickup" value={pickup} onChangeText={setPickup} placeholder="Pickup location" />
         <Field label="Destination" value={destination} onChangeText={setDestination} placeholder="Destination" />
         <Field label="What are you moving?" value={item} onChangeText={setItem} placeholder="e.g. documents, food, cartons" />
-        <Pressable disabled={!canContinue} onPress={() => router.push('/options')} style={[styles.button, !canContinue && styles.disabled]}>
+        <Pressable disabled={!canContinue} onPress={() => router.push({ pathname: '/options', params: { pickup, destination, item } })} style={[styles.button, !canContinue && styles.disabled]}>
           <Text style={styles.buttonText}>Find delivery options</Text>
         </Pressable>
       </View>
