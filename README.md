@@ -20,6 +20,7 @@ One shared codebase for Web, Android, and iOS. Windows and macOS are not targets
 8. User pays through JSI.
 9. JSI creates the delivery with the selected provider.
 10. User sees order and delivery status.
+11. When the provider supplies GPS coordinates, JSI displays the current package/rider location on the tracking map.
 
 ## Architecture
 
@@ -32,7 +33,10 @@ The provider abstraction includes:
 - `getQuote()`
 - `createDelivery()`
 - `getStatus()`
+- `trackDelivery()`
 - `cancelDelivery()`
+
+Tracking coordinates come from the connected logistics provider. JSI does not invent or simulate a rider location.
 
 ## Address model
 
@@ -45,12 +49,31 @@ Pickup and destination locations support:
 
 The current UI accepts GhanaPostGPS addresses as user-entered values. A direct GhanaPostGPS API integration will only be added when an authorized API/integration method is available; JSI does not scrape or invent an integration.
 
+## Tracking
+
+JSI now has a tracking foundation:
+
+- Tracking screen
+- Native map component for Android/iOS
+- Current package/rider marker when coordinates are available
+- Last location timestamp
+- Provider tracking adapter contract
+- Supabase `tracking_locations` table
+- Supabase Realtime subscription for new tracking points
+- User-level RLS so customers can only read tracking belonging to their own orders
+
+The Web target shows a location/status fallback rather than pretending to have a native map.
+
+A real rider marker will appear only after the connected provider supplies live GPS data.
+
 ## Stack
 
 - Expo / React Native
 - Expo Router
 - TypeScript
 - React Native Web
+- React Native Maps
+- Supabase
 
 ## Current implementation
 
@@ -63,8 +86,13 @@ The current UI accepts GhanaPostGPS addresses as user-entered values. A direct G
 - Request data flows into provider quote selection.
 - Logistics providers use a shared adapter interface.
 - A development provider adapter supplies non-production quote data until a real logistics API is connected.
-- Checkout now shows a structured review before payment.
-- Payment, live OTP verification, real provider creation, and tracking are not yet connected.
+- Checkout shows a structured review before payment.
+- Tracking screen and realtime tracking data model are implemented.
+- Payment, live OTP verification, real provider creation, and real provider GPS feeds are not yet connected.
+
+## Map deployment note
+
+The native map uses `react-native-maps`. Expo's documentation notes that store builds using Google Maps require the relevant Google Maps SDK/API-key configuration and a native rebuild. citeturn0search1
 
 ## Principle
 
