@@ -25,14 +25,14 @@ export default {
     if (!orderId) return Response.json({ error: "orderId is required." }, { status: 400 });
 
     const { data: order } = await ctx.supabaseAdmin.from("orders")
-      .select("id,user_id,status,item_description,provider_delivery_id,pickup_address_id,destination_address_id")
+      .select("id,user_id,status,item_description,provider_id,provider_delivery_id,pickup_address_id,destination_address_id")
       .eq("id", orderId).single();
 
     if (!order) return Response.json({ error: "Order not found." }, { status: 404 });
     if (order.status !== "paid" && order.status !== "creating_delivery") return Response.json({ error: "Order cannot be dispatched from its current status." }, { status: 409 });
     if (order.provider_delivery_id) return Response.json({ ok: true, alreadyCreated: true, providerDeliveryId: order.provider_delivery_id });
 
-    const [{ data: pickup }, { data: destination }, { data: profile }] = await Promise.all([
+    const [{ data: pickup }, { data: destination }, { data: profile }, { data: provider }] = await Promise.all([
       ctx.supabaseAdmin.from("addresses").select("address,digital_address,landmark,latitude,longitude").eq("id", order.pickup_address_id).eq("user_id", order.user_id).single(),
       ctx.supabaseAdmin.from("addresses").select("address,digital_address,landmark,latitude,longitude").eq("id", order.destination_address_id).eq("user_id", order.user_id).single(),
       ctx.supabaseAdmin.from("profiles").select("phone").eq("id", order.user_id).single(),
@@ -41,6 +41,7 @@ export default {
     if (!pickup || !destination) return Response.json({ error: "Pickup or destination address is missing." }, { status: 409 });
     if (pickup.latitude == null || pickup.longitude == null || destination.latitude == null || destination.longitude == null) return Response.json({ error: "Verified pickup and destination coordinates are required for provider dispatch." }, { status: 409 });
     if (!profile?.phone) return Response.json({ error: "Customer phone number is missing." }, { status: 409 });
+    if (!provider) return Response.json({ error: "Dawurobo provider is not active in JSI yet." }, { status: 409 });
 
     await ctx.supabaseAdmin.from("orders").update({ status: "creating_delivery" }).eq("id", order.id).eq("status", "paid");
 
